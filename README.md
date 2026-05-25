@@ -13,7 +13,7 @@ This repository serves as a hands-on technical sandbox for designing, deploying,
 ---
 
 ## Architecture & Topology
-*(We will add network topology diagrams and VPC layouts here as we build them!)*
+*(add network topology diagrams and VPC layouts here as we build them!)*
 
 ---
 
