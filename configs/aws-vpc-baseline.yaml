@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Cloud Infrastructure Baseline - Production Environment'
+
+Resources:
+  # Core Virtual Private Cloud
+  ProductionVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: prd-vpc-core
+
+  # Public Subnet (DMZ Zone)
+  PublicSubnetDMZ:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref ProductionVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: prd-sub-pub-dmz
+
+  # Internet Gateway for External Routing
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: prd-igw-main
+
+  # Attach Internet Gateway to VPC
+  VPCGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref ProductionVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public Routing Table
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref ProductionVPC
+      Tags:
+        - Key: Name
+          Value: prd-rt-public
+
+  # Default Route to Internet Gateway
+  PublicDefaultRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # Associate Public Subnet with Public Routing Table
+  PublicSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetDMZ
+      RouteTableId: !Ref PublicRouteTable
