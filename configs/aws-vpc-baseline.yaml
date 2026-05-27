@@ -64,3 +64,43 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetDMZ
       RouteTableId: !Ref PublicRouteTable
+      # CloudWatch Log Group to store network traffic records
+  VPCFlowLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: '/aws/vpc/prd-core-flowlogs'
+      RetentionInDays: 7
+
+  # IAM Role to grant Flow Logs permission to write to CloudWatch
+  FlowLogRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: VPCFlowLogsDeliveryPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DescribeLogStreams'
+                Resource: '*'
+
+  # The VPC Flow Log configuration itself
+  CoreVPCFlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
+      LogGroupName: !Ref VPCFlowLogGroup
+      ResourceId: !Ref ProductionVPC
+      ResourceType: VPC
+      TrafficType: ALL
